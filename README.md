@@ -3,7 +3,7 @@
 A fully Metro-compatible Arduino library for non-blocking timing – with added features!
 
 🟢 **Drop-in replacement for [Metro library](https://github.com/thomasfredericks/Metro)**
-🟢 **Adds support for delta time measurements and dual-phase intervals**
+🟢 **Adds support for delta time measurements, dual-phase intervals, and dynamic control**
 
 ---
 
@@ -44,6 +44,7 @@ A fully Metro-compatible Arduino library for non-blocking timing – with added 
 
 const int ledPin = 13;
 EasyInterval blink(1000); // 1 second
+// Metro blink(1000); // <- just change this line if using Metro
 
 void setup() {
   pinMode(ledPin, OUTPUT);
@@ -147,15 +148,90 @@ void loop() {
     Serial.println("Heartbeat...");
   }
 
-  // Example: stop timer after 5 seconds
   static EasyInterval timeout(5000);
   if (timeout.check()) {
     heartbeat.disable();
     Serial.println("Timer disabled");
   }
 
-  // Later you can call:
-  // heartbeat.enable();
+  // heartbeat.enable(); // to resume later
+}
+```
+
+---
+
+## 🔹 Example: Multiple independent intervals
+
+```cpp
+#include <EasyInterval.h>
+
+EasyInterval blink1(500);   // LED1 every 500ms
+EasyInterval blink2(1500);  // LED2 every 1.5s
+
+const int led1 = 8;
+const int led2 = 9;
+
+void setup() {
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
+}
+
+void loop() {
+  if (blink1.check()) {
+    digitalWrite(led1, !digitalRead(led1));
+  }
+
+  if (blink2.check()) {
+    digitalWrite(led2, !digitalRead(led2));
+  }
+}
+```
+
+---
+
+## 🔹 Example: Dynamically change interval
+
+```cpp
+#include <EasyInterval.h>
+
+EasyInterval action(1000);
+bool fast = false;
+
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  if (action.check()) {
+    Serial.println("Tick");
+    if (fast) {
+      action.interval(1000); // switch to slow
+    } else {
+      action.interval(200);  // switch to fast
+    }
+    fast = !fast;
+  }
+}
+```
+
+---
+
+## 🔹 Example: Metro vs EasyInterval drop-in
+
+```cpp
+#include <EasyInterval.h>
+
+EasyInterval blinkLed(500);  // create interval
+// Metro blinkLed(500);     // exact same logic with Metro
+
+void setup() {
+  pinMode(13, OUTPUT);
+}
+
+void loop() {
+  if (blinkLed.check()) {
+    digitalWrite(13, !digitalRead(13));
+  }
 }
 ```
 
@@ -185,7 +261,7 @@ void loop() {
 To disable execution:
 
 ```cpp
-timer.disable(); // prevents check/get from doing anything
+timer.disable();
 ```
 
 To re-enable:
@@ -194,11 +270,11 @@ To re-enable:
 timer.enable();
 ```
 
-Or use a flag:
+Or:
 
 ```cpp
 if (timer.isEnabled() && timer.check()) {
-  // only runs if enabled and interval passed
+  // conditional execution
 }
 ```
 
